@@ -7,19 +7,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <ctype.h>
 
 #define MAX_INPUT_TOKENS 20
 #define MAX_BUFFER_SIZE 255
 #define MAX_EXPORTED_VARIABLES_NUM 255
 
-typedef struct ExportedVariable{
-    char *name;
-    char *value;
-} exported_variable;
-
-
-exported_variable exported_variable_array[MAX_EXPORTED_VARIABLES_NUM] = {NULL};
-int exported_variables_count = 0;
 void shell_builtin(char **, int);
 void shell();
 void execute_command(char **, int);
@@ -28,7 +21,7 @@ void parse_input(char *, char**, bool *);
 void read_input(char **);
 int get_length(char **);
 void my_echo(char **);
-void my_cd(char **, int input_length);
+void my_cd(char **, int);
 void remove_newline(char **, int);
 void register_child_signal();
 void handle_child_exit();
@@ -51,8 +44,9 @@ void handle_child_exit(){
         exit(1);             
     }
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        fprintf(fptr, "%s\n" , "Child process was terminated");
     }
+    fprintf(fptr, "%s\n" , "Child process was terminated");
+    fclose(fptr);
 }
 
 void register_child_signal(){
@@ -66,8 +60,9 @@ void shell(){
     bool is_export = false;
     char s[100]; 
     while (true){
-        // printf("Current directory: %s\n", getcwd(s, 100)); 
+        printf("amralnas@simpleshell:%s$ ", getcwd(s, 100)); 
         read_input(&user_input);
+        replace_variables(user_input);
         parse_input(user_input, user_input_array, &is_export);
         if (is_export) {
             is_export = false;
@@ -131,7 +126,13 @@ void shell_builtin(char **user_input_array, int input_length){
     if (!strcmp(user_input_array[0], "echo"))
         my_echo(user_input_array);
     else if (!strcmp(user_input_array[0], "exit"))
-        exit(atoi(user_input_array[1]));
+    {
+        if (user_input_array[1])
+            exit(atoi(user_input_array[1]));
+        else
+            exit(0);
+    }
+
     else if (!strcmp(user_input_array[0], "cd"))
         my_cd(user_input_array, input_length);
 }
@@ -152,7 +153,6 @@ void execute_command(char **user_input_array, int input_length){
             exit(1);
         }
     }
-    printf("%s\n", user_input_array[input_length - 1]);
     if (!strcmp(user_input_array[input_length - 1], "&"))
         waitpid(pid, &status, WNOHANG);
     else 
@@ -162,6 +162,10 @@ void execute_command(char **user_input_array, int input_length){
 void my_echo(char **user_input_array){
     int index = 1;
     while(user_input_array[index + 1] != NULL){
+        if (user_input_array[index][0] == '"')
+            user_input_array[index]++;
+        if (user_input_array[index][strlen(user_input_array[index]) - 1] == '"')
+            user_input_array[index][strlen(user_input_array[index]) - 1] = '\0';
         printf("%s ", user_input_array[index]);
         index++;
     }
@@ -170,8 +174,6 @@ void my_echo(char **user_input_array){
 
 void my_cd(char **user_input_array, int input_length){
     char cwd[PATH_MAX];
-    // if (getcwd(cwd, sizeof(cwd)) != NULL)
-    //     printf("Current working Directory: %s\n", cwd);
     if (input_length == 1 || !strcmp(user_input_array[1], "~"))
         chdir(getenv("HOME"));
     else
@@ -188,6 +190,7 @@ void remove_newline(char **user_input_array, int length){
 // export x="hello world"
 void my_export(char *user_input) {
     char *tok = strtok(user_input, " ");
+    char *var_name;
     if (tok == NULL || strcmp(tok, "export") != 0) {
         // Not an export command
         return;
@@ -198,7 +201,7 @@ void my_export(char *user_input) {
         // No variable name
         return;
     }
-    exported_variable_array[exported_variables_count].name = tok;
+    var_name = tok;
 
     tok = strtok(NULL, "=");
     if (tok != NULL) {
@@ -207,15 +210,36 @@ void my_export(char *user_input) {
             tok[strlen(tok) - 1] = '\0';
             tok++;
         }
-        exported_variable_array[exported_variables_count].value = tok;
+        setenv(var_name, tok, 1);
     } else {
-        exported_variable_array[exported_variables_count].value = "";
+        setenv(var_name, "", 1);
     }
-    exported_variables_count++;
 }
 
-void replace_variables(char *user_input){
-    char *new_input;
-    strcpy(new_input, user_input);
-    // TODO Replace Variables
+void replace_variables(char *user_input) {
+    char new_input[MAX_BUFFER_SIZE];
+    int i = 0, j = 0;
+
+    while (user_input[i] != '\0') {
+        if (user_input[i] == '$') {
+            i++;
+            char var_name[128] = {0};
+            int k = 0;
+
+            while (user_input[i] != '\0' && (isalnum(user_input[i]) || user_input[i] == '_')) {
+                var_name[k++] = user_input[i++];
+            }
+            var_name[k] = '\0';
+            char *value = getenv(var_name);
+            if (value) {
+                strcpy(&new_input[j], value);
+                j += strlen(value);
+            }
+        } else {
+            new_input[j++] = user_input[i++];
+        }
+    }
+
+    new_input[j] = '\0';
+    strcpy(user_input, new_input);
 }
