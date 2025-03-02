@@ -344,14 +344,14 @@ void my_export(char *user_input) {
 }
 
 /**
- * replace_variables - A functoion in which we replace the variables that we entered by
- * the user like $x and it does this by looping on the input, using the 'i' iterator
- * and if it finds a '$' sign, it incremanse the i by 1 to get to the name of the variable, after that
+ * replace_variables - A function in which we replace the variables that were entered by
+ * the user likes $x and it does this by looping on the input, using the 'i' iterator
+ * and if it finds a '$' sign, it increases the i by 1 to get to the name of the variable, after that
  * it starts looping on the name of the variable using the 'i' iterator for the original input
- * and 'k' iterator to store the value of the name in the 'var_name' variable, after finising looping
+ * and 'k' iterator to store the value of the name in the 'var_name' variable, after finishing looping
  * it puts a null termination char at the end of the input, and we use the 'var_name' to get the value
- * using 'getenv' function, and we copy it the 'new_input' varible which represents the input which contains
- * the replaced variables. We continue doing the same until we reach the end of the original input.
+ * using the 'getenv' function, we copy the 'new_input' variable which represents the input that contains
+ * The replaced variables. We continue doing the same until we reach the end of the original input.
  * @user_input: A pointer to the original input of the user before being tokenized
  * Return: void
 */
