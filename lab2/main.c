@@ -40,6 +40,7 @@ void *multi_per_row(void *ptr);
 void *multi_per_element(void *ptr);
 mul_matrix_data* copy_multi_data(mul_matrix_data *);
 
+
 void freeing_function(
     char *,
     matrix_struct *,
@@ -140,6 +141,9 @@ void write_matrix(matrix_struct *full_matrix, char* matrix_name, char* file_type
     FILE *fptr;
     char *filename = (char*)malloc(strlen(matrix_name) + strlen(file_type) + 5);
     strcpy(filename, matrix_name);
+    // c_per_matrix.txt
+    // c_per_row.txt
+    // c_per_element.txt
     if (!strcmp(file_type, "_per_matrix.txt"))
         strcat(filename, "_per_matrix.txt");
     else if(!strcmp(file_type, "_per_row.txt"))
@@ -149,18 +153,23 @@ void write_matrix(matrix_struct *full_matrix, char* matrix_name, char* file_type
     else
         strcat(filename, ".txt");
     fptr = fopen(filename, "w");
-    fprintf(fptr, "rows=%d col=%d\n", full_matrix->row_count, full_matrix->cols_count);
+    fprintf(fptr, "row=%d col=%d\n", full_matrix->row_count, full_matrix->cols_count);
     for (int i = 0; i < full_matrix->row_count; i++) {
         for (int j = 0; j < full_matrix->cols_count; j++) {
-            fprintf(fptr, "%d ", full_matrix->matrix[i][j]);
+            if (i == full_matrix->row_count - 1 && j == full_matrix->cols_count - 1)
+                fprintf(fptr, "%d", full_matrix->matrix[i][j]);
+            else
+                fprintf(fptr, "%d ", full_matrix->matrix[i][j]);
         }
         fprintf(fptr, "\n");
     }
+    free(filename);
     fclose(fptr);
 }
 
 
-void multiplication(matrix_struct *a,
+void multiplication(
+    matrix_struct *a,
     matrix_struct *b,
     matrix_struct *c,
     char *output_matrix_name){
@@ -208,7 +217,6 @@ void multiplication(matrix_struct *a,
     printf("Seconds taken %lu in one thread per element approch\n", stop.tv_sec - start.tv_sec);
     printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_element.txt");
-
 
     free(multi);
 }
@@ -293,6 +301,7 @@ void *multi_per_element(void *ptr){
 mul_matrix_data* copy_multi_data(mul_matrix_data *src){
     mul_matrix_data *dest = (mul_matrix_data *)malloc(sizeof(mul_matrix_data));
     dest->matrix_a = src->matrix_a, dest->matrix_b = src->matrix_b, dest->matrix_c = src->matrix_c;
+    return dest;
 }
 
 void freeing_function(

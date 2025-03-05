@@ -1,0 +1,6 @@
+#!/bin/bash
+if diff -wq compare.txt c_per_element.txt > /dev/null; then
+    echo 'Passed'
+else
+    echo 'Failed'
+fi
