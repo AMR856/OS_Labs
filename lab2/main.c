@@ -3,6 +3,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
+
 
 #define MAX_LINE_SIZE 255
 
@@ -106,12 +108,10 @@ void read_matrix(char* filename, matrix_struct* full_matrix, char *matrix_name){
     for (int i = 0; i < full_matrix->row_count; i++) {
         if (fgets(line, MAX_LINE_SIZE, fptr) != NULL) {
             int j = 0;
-            // char *tok = strtok(line, " ");
-            char *tok = strtok(line, "\t");
+            char *tok = strtok(line, " ");
             while (tok != NULL) {
                 full_matrix->matrix[i][j++] = atoi(tok); 
-                tok = strtok(NULL, "\t");
-                // tok = strtok(NULL, " ");
+                tok = strtok(NULL, " ");
             }
         }
     }
@@ -152,7 +152,7 @@ void write_matrix(matrix_struct *full_matrix, char* matrix_name, char* file_type
     fprintf(fptr, "rows=%d col=%d\n", full_matrix->row_count, full_matrix->cols_count);
     for (int i = 0; i < full_matrix->row_count; i++) {
         for (int j = 0; j < full_matrix->cols_count; j++) {
-            fprintf(fptr, "%d\t", full_matrix->matrix[i][j]);
+            fprintf(fptr, "%d ", full_matrix->matrix[i][j]);
         }
         fprintf(fptr, "\n");
     }
@@ -164,6 +164,8 @@ void multiplication(matrix_struct *a,
     matrix_struct *b,
     matrix_struct *c,
     char *output_matrix_name){
+    struct timeval stop, start;
+
     c->row_count = a->row_count, c->cols_count = b->cols_count;
     c->matrix = (int**)calloc(c->row_count, sizeof(int *));
     if (c->matrix == NULL) {
@@ -181,18 +183,33 @@ void multiplication(matrix_struct *a,
     }
     mul_matrix_data *multi = (mul_matrix_data*)malloc(sizeof(mul_matrix_data));
     multi->matrix_a = a, multi->matrix_b = b, multi->matrix_c = c;
+
+    // One Thread Per Matrix Approach
+    gettimeofday(&start, NULL);
     threads_handle_multi_per_matrix(multi);
-    // printf("Matrix C Using Per Matrix Method: \n");
-    // print_matrix(c);
+    gettimeofday(&stop, NULL);
+    printf("Seconds taken %lu in one thread per matrix approch\n", stop.tv_sec - start.tv_sec);
+    printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_matrix.txt");
+
+    // One Thread Per Row Approach
+    gettimeofday(&start, NULL);
     threads_handle_multi_per_row(multi);
-    // printf("Matrix C Using Per Row Method: \n");
-    // print_matrix(c);
+    gettimeofday(&stop, NULL);
+    printf("Seconds taken %lu in thread per row approch\n", stop.tv_sec - start.tv_sec);
+    printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_row.txt");
+
+
+    // One Thread Per Element Approach
+    gettimeofday(&start, NULL);
     threads_handle_multi_per_element(multi);
-    // printf("Matrix C Using Per Element Method: \n");
-    // print_matrix(c);
+    gettimeofday(&stop, NULL);
+    printf("Seconds taken %lu in one thread per element approch\n", stop.tv_sec - start.tv_sec);
+    printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_element.txt");
+
+
     free(multi);
 }
 
