@@ -6,3 +6,6 @@
 
 ### 1. **Simple Shell**
 - [Shell Directory](./lab1/)
+
+### 2. **Matrix Multiplication using Threads**
+- [Matrix Multiplication Directory](./lab2/)
