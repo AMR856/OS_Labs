@@ -75,6 +75,7 @@ int main(int argc, char **argv){
     freeing_function(matrix_name, a, b, c, filename);
 }
 
+
 void read_matrix(char* filename, matrix_struct* full_matrix, char *matrix_name){
     FILE *fptr;
     sprintf(filename, "%s.txt", matrix_name);
@@ -107,12 +108,9 @@ void read_matrix(char* filename, matrix_struct* full_matrix, char *matrix_name){
         }
     }
     for (int i = 0; i < full_matrix->row_count; i++) {
-        if (fgets(line, MAX_LINE_SIZE, fptr) != NULL) {
-            int j = 0;
-            char *tok = strtok(line, " ");
-            while (tok != NULL) {
-                full_matrix->matrix[i][j++] = atoi(tok); 
-                tok = strtok(NULL, " ");
+        for (int j = 0; j < full_matrix->cols_count; j++) {
+            if (fscanf(fptr, "%d", &full_matrix->matrix[i][j]) != 1) {
+                printf("Error reading the file: %s\n", filename);
             }
         }
     }
@@ -141,9 +139,6 @@ void write_matrix(matrix_struct *full_matrix, char* matrix_name, char* file_type
     FILE *fptr;
     char *filename = (char*)malloc(strlen(matrix_name) + strlen(file_type) + 5);
     strcpy(filename, matrix_name);
-    // c_per_matrix.txt
-    // c_per_row.txt
-    // c_per_element.txt
     if (!strcmp(file_type, "_per_matrix.txt"))
         strcat(filename, "_per_matrix.txt");
     else if(!strcmp(file_type, "_per_row.txt"))
@@ -197,7 +192,6 @@ void multiplication(
     gettimeofday(&start, NULL);
     threads_handle_multi_per_matrix(multi);
     gettimeofday(&stop, NULL);
-    printf("Seconds taken %lu in one thread per matrix approch\n", stop.tv_sec - start.tv_sec);
     printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_matrix.txt");
 
@@ -205,7 +199,6 @@ void multiplication(
     gettimeofday(&start, NULL);
     threads_handle_multi_per_row(multi);
     gettimeofday(&stop, NULL);
-    printf("Seconds taken %lu in thread per row approch\n", stop.tv_sec - start.tv_sec);
     printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_row.txt");
 
@@ -214,7 +207,6 @@ void multiplication(
     gettimeofday(&start, NULL);
     threads_handle_multi_per_element(multi);
     gettimeofday(&stop, NULL);
-    printf("Seconds taken %lu in one thread per element approch\n", stop.tv_sec - start.tv_sec);
     printf("Microseconds taken: %lu\n", stop.tv_usec - start.tv_usec);
     write_matrix(c, output_matrix_name, "_per_element.txt");
 
@@ -224,8 +216,8 @@ void multiplication(
 
 void threads_handle_multi_per_matrix(mul_matrix_data *multi){
     pthread_t thread;
-    if (pthread_create(&thread, NULL, &multi_per_matrix, (void *)multi)) exit(1);
-    if (pthread_join(thread, NULL)) exit(1);
+    if (pthread_create(&thread, NULL, multi_per_matrix, (void *)multi)) exit(1);
+    pthread_join(thread, NULL);
 }
 
 void threads_handle_multi_per_row(mul_matrix_data *multi){
@@ -234,10 +226,10 @@ void threads_handle_multi_per_row(mul_matrix_data *multi){
     for (int i = 0; i < rows_count; i++){
         mul_matrix_data *multi_copy = copy_multi_data(multi);
         multi_copy->currnet_row = i, multi_copy->currnet_col = 0;
-        if (pthread_create(&threads[i], NULL, &multi_per_row, (void *)multi_copy)) exit(1);
+        if (pthread_create(&threads[i], NULL, multi_per_row, (void *)multi_copy)) exit(1);
     }
     for (int  i= 0; i < rows_count; i++){
-        if (pthread_join(threads[i], NULL)) exit(1);
+        pthread_join(threads[i], NULL);
     }
 }
 
@@ -249,12 +241,12 @@ void threads_handle_multi_per_element(mul_matrix_data *multi){
         for (int j = 0; j < cols_count; j++){
             mul_matrix_data *multi_copy = copy_multi_data(multi);
             multi_copy->currnet_row = i, multi_copy->currnet_col = j;
-            if (pthread_create(&threads[i][j], NULL, &multi_per_element, (void *)multi_copy)) exit(1);
+            if (pthread_create(&threads[i][j], NULL, multi_per_element, (void *)multi_copy)) exit(1);
         }
     }
     for (int  i= 0; i < rows_count; i++){
         for (int j = 0; j < cols_count; j++){
-            if (pthread_join(threads[i][j], NULL)) exit(1);
+            pthread_join(threads[i][j], NULL);
         }
     }
 }
