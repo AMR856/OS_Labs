@@ -1,3 +1,4 @@
+/** Including the libraries that will be used in the program */
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -5,15 +6,31 @@
 #include <string.h>
 #include <sys/time.h>
 
-
+/** Some macros to determine the buffer size, and the number of tokens in the input */
 #define MAX_LINE_SIZE 255
 
+
+/** matrix_struct
+ * A struct that contains all the information about the matrix
+ * @row_count: The number of rows in the matrix
+ * @col_count: The number of cols in the matrix
+ * @matrix: A pointer to a poniter which we use to store the matrix
+ * */
 
 typedef struct {
     int row_count;
     int cols_count;
     int **matrix;
 } matrix_struct;
+
+/** matrix_struct
+ * A struct that contains all the information we need while performing the multiplication
+ * @row_count: The current row in the maltiplciation process
+ * @col_count: The current col in the maltiplciation process
+ * @matrix: A pointer to matrix A
+ * @matrix_b: A pointer to matrix B
+ * @matrix_c: A pionter to matrix C
+ * */
 
 typedef struct{
     int currnet_row;
@@ -23,6 +40,7 @@ typedef struct{
     matrix_struct *matrix_c;
 } mul_matrix_data;
 
+/** All the functions declrations */
 void read_matrix(char*, matrix_struct*, char *);
 void print_matrix(matrix_struct *);
 void free_matrix(matrix_struct *);
@@ -39,8 +57,6 @@ void *multi_per_matrix(void *ptr);
 void *multi_per_row(void *ptr);
 void *multi_per_element(void *ptr);
 mul_matrix_data* copy_multi_data(mul_matrix_data *);
-
-
 void freeing_function(
     char *,
     matrix_struct *,
@@ -48,6 +64,20 @@ void freeing_function(
     matrix_struct *,
     char *
 );
+
+/**
+ * main - Entry point of the matrix multiplication program.
+ * @argc: The number of command-line arguments.
+ * @argv: An array of strings representing command-line arguments.
+ *
+ * This function initializes three matrix structures and reads matrices
+ * from files to perform multiplication. If no command-line arguments
+ * are provided, it reads default matrices "a" and "b" from a predefined file.
+ * Otherwise, it expects three arguments: the names of matrices A, B, and the result C.
+ * The program performs matrix multiplication and frees allocated memory before exiting.
+ *
+ * Return: 0 on successful execution, exits with status 1 on failure.
+ */
 
 int main(int argc, char **argv){
     matrix_struct* a = (matrix_struct *)malloc(sizeof(matrix_struct));
@@ -75,6 +105,16 @@ int main(int argc, char **argv){
     freeing_function(matrix_name, a, b, c, filename);
 }
 
+/**
+ * read_matrix - Reads a matrix from a file and initializes its structure.
+ * @filename: The name of the file to read from.
+ * @full_matrix: A pointer to the matrix_struct where the matrix will be stored.
+ * @matrix_name: The name of the matrix to read (used to construct the filename).
+ *
+ * This function opens a file named "<matrix_name>.txt", reads the matrix dimensions,
+ * allocates memory for the matrix, and populates it with values from the file.
+ * If the file cannot be opened or memory allocation fails, the program exits with an error 1.
+ */
 
 void read_matrix(char* filename, matrix_struct* full_matrix, char *matrix_name){
     FILE *fptr;
@@ -119,6 +159,14 @@ void read_matrix(char* filename, matrix_struct* full_matrix, char *matrix_name){
 }
 
 
+/**
+ * print_matrix - A function to print the matrix to the terminal
+ * @full_matrix: A pointer to the matrix_struct where the matrix will be stored.
+ * This function justs loops through the matrix and prints its elements
+ * separting them with tabs and a newilne at the end of the file.
+ * Return: void
+ */
+
 void print_matrix(matrix_struct *full_matrix){
     for (int i = 0; i < full_matrix->row_count; i++) {
         for (int j = 0; j < full_matrix->cols_count; j++) {
@@ -128,12 +176,31 @@ void print_matrix(matrix_struct *full_matrix){
     }
 }
 
+/**
+ * free_matrix - A function to free the allocated memory for the matrix in the heap
+ * @full_matrix: A pointer to the matrix_struct where the matrix will be stored.
+ * This function frees all the rows of the matrix first and after that it frees
+ * the pointer to it
+ * Return: void
+ */
+
 void free_matrix(matrix_struct *full_matrix) {
     for (int i = 0; i < full_matrix->row_count; i++) {
         free(full_matrix->matrix[i]);
     }
     free(full_matrix->matrix);
 }
+
+/**
+ * write_matrix - Writes a matrix to a file
+ * @full_matrix: A pointer to the matrix_struct where the matrix will be stored.
+ * @matrix_name: The base name of the output file.
+ * @file_type: The format of the output file (_per_matrix.txt, _per_row.txt, _per_element.txt, or default).
+ *
+ * This function creates a filename based on the matrix name and it writes the
+ * matrix dimensions followed by the matrix values into the file.
+ * The function ensures that memory is allocated for the filename and properly freed.
+ */
 
 void write_matrix(matrix_struct *full_matrix, char* matrix_name, char* file_type){
     FILE *fptr;
@@ -162,6 +229,22 @@ void write_matrix(matrix_struct *full_matrix, char* matrix_name, char* file_type
     fclose(fptr);
 }
 
+/**
+ * multiplication - Performs matrix multiplication using multithreading.
+ * @a: A pointer to the first matrix (multiplicand).
+ * @b: A pointer to the second matrix (multiplier).
+ * @c: A pointer to the result matrix.
+ * @output_matrix_name: The base name for the output matrix files.
+ *
+ * This function initializes matrix C, allocates memory for it, and performs
+ * matrix multiplication using three different threading approaches:
+ *   - One Thread Per Matrix
+ *   - One Thread Per Row
+ *   - One Thread Per Element
+ *
+ * It records execution time for each approach and writes the resulting matrices
+ * to files in different files. If memory allocation fails, the function exits with an error.
+ */
 
 void multiplication(
     matrix_struct *a,
@@ -213,12 +296,28 @@ void multiplication(
     free(multi);
 }
 
+/**
+ * threads_handle_multi_per_matrix - Creates a single thread for matrix multiplication.
+ * @multi: A pointer to the mul_matrix_data structure containing matrix data.
+ *
+ * This function spawns a single thread to perform the entire matrix multiplication
+ * using the `multi_per_matrix` function and waits for it to complete.
+ */
 
 void threads_handle_multi_per_matrix(mul_matrix_data *multi){
     pthread_t thread;
     if (pthread_create(&thread, NULL, multi_per_matrix, (void *)multi)) exit(1);
     pthread_join(thread, NULL);
 }
+
+/**
+ * threads_handle_multi_per_row - Creates a thread for each row in the result matrix.
+ * @multi: A pointer to the mul_matrix_data structure containing matrix data.
+ *
+ * This function spawns a thread for each row in the result matrix to perform multiplication.
+ * Each thread executes the `multi_per_row` function and is responsible for computing
+ * a single row of the resulting matrix.
+ */
 
 void threads_handle_multi_per_row(mul_matrix_data *multi){
     int rows_count = multi->matrix_a->row_count;
@@ -232,6 +331,14 @@ void threads_handle_multi_per_row(mul_matrix_data *multi){
         pthread_join(threads[i], NULL);
     }
 }
+
+/**
+ * threads_handle_multi_per_element - Creates a thread for each element in the result matrix.
+ * @multi: A pointer to the mul_matrix_data structure containing matrix data.
+ *
+ * This function spawns a separate thread for each element in the result matrix.
+ * Each thread executes the `multi_per_element` function to compute a single element.
+ */
 
 void threads_handle_multi_per_element(mul_matrix_data *multi){
     int rows_count = multi->matrix_a->row_count;
@@ -251,6 +358,15 @@ void threads_handle_multi_per_element(mul_matrix_data *multi){
     }
 }
 
+/**
+ * multi_per_matrix - Performs matrix multiplication using a single thread.
+ * @ptr: A pointer to the mul_matrix_data structure containing matrix data.
+ *
+ * This function iterates over each row and column of the matrices and computes
+ * the multiplication result for the entire matrix. The results are stored in `matrix_c`.
+ * Once completed, the thread exits.
+ */
+
 void *multi_per_matrix(void *ptr){
     mul_matrix_data *data = (mul_matrix_data *)ptr;
     for (int i = 0; i < data->matrix_a->row_count; i++){
@@ -264,6 +380,15 @@ void *multi_per_matrix(void *ptr){
     pthread_exit(NULL);
 }
 
+/**
+ * multi_per_row - Computes a single row of the resulting matrix using a thread.
+ * @ptr: A pointer to the mul_matrix_data structure containing matrix data.
+ *
+ * This function calculates the matrix multiplicatoin for a specific row in the result matrix.
+ * Once the row computation is complete, the allocated memory for the thread's copy
+ * of `mul_matrix_data` is freed before exiting.
+ */
+
 void *multi_per_row(void *ptr){
     mul_matrix_data *data = (mul_matrix_data *)ptr;
     for (int j = 0; j < data->matrix_b->cols_count; j++){
@@ -276,6 +401,15 @@ void *multi_per_row(void *ptr){
     free(data);
     pthread_exit(NULL);
 }
+
+/**
+ * multi_per_element - Computes a single element in the result matrix using a thread.
+ * @ptr: A pointer to the mul_matrix_data structure containing matrix data.
+ *
+ * This function calculates the matrix multplication for a specific element in the result matrix.
+ * After storing the computed value in `matrix_c`, the allocated memory for the thread's
+ * copy of `mul_matrix_data` is freed before exiting.
+ */
 
 void *multi_per_element(void *ptr){
     mul_matrix_data *data = (mul_matrix_data *)ptr;
@@ -295,6 +429,20 @@ mul_matrix_data* copy_multi_data(mul_matrix_data *src){
     dest->matrix_a = src->matrix_a, dest->matrix_b = src->matrix_b, dest->matrix_c = src->matrix_c;
     return dest;
 }
+
+/**
+ * freeing_function - Frees allocated memory for matrices and filenames.
+ * @matrix_name: A pointer to the allocated memory for the matrix name.
+ * @a: A pointer to the first matrix (multiplicand).
+ * @b: A pointer to the second matrix (multiplier).
+ * @c: A pointer to the result matrix.
+ * @filename: A pointer to the allocated memory for the filename.
+ *
+ * This function releases all dynamically allocated memory associated with 
+ * the matrices and their structures. It calls `free_matrix` to free the 
+ * matrix data before freeing the matrix structure itself. Additionally, 
+ * it frees allocated memory for `matrix_name` and `filename`.
+ */
 
 void freeing_function(
     char *matrix_name,
