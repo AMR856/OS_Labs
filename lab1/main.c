@@ -67,7 +67,7 @@ void handle_child_exit(){
     }
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
     }
-    fprintf(fptr, "%s\n" , "Child process was terminated");
+    fprintf(fptr, "%s\n" , "Child processes were terminated");
     fclose(fptr);
 }
 

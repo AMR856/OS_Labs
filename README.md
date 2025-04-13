@@ -9,3 +9,9 @@
 
 ### 2. **Matrix Multiplication using Threads**
 - [Matrix Multiplication Directory](./lab2/)
+
+### 4. **CalTrain Synchronization**
+- [Caltrain Directory](./lab3/)
+
+### 4. **Distributed Locks using Redis**
+- [Distributed Locks Directory](./lab4/)
